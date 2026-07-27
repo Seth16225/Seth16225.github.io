@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Metal Detector — Seth Lee</title>
+  <meta name="description" content="A discrete-MOSFET beat-frequency metal detector: two LC oscillators, a MOSFET mixer, low-pass filter, and source-follower output stage on a custom Altium PCB." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../../style.css" />
+
+  <style>
+    /* ---------- Project page layout ---------- */
+    .proj-hero { padding-top: 150px; padding-bottom: 40px; }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 8px;
+      text-decoration: none; color: var(--ink-soft); font-weight: 600; font-size: .9rem;
+      transition: color .2s ease, gap .2s ease;
+    }
+    .back-link:hover { color: var(--accent); gap: 12px; }
+    .back-link svg { width: 16px; height: 16px; }
+
+    .proj-title { font-size: clamp(2.2rem, 6vw, 3.6rem); letter-spacing: -.02em; margin-top: 18px; }
+    .proj-lede { font-size: clamp(1.05rem, 2.2vw, 1.3rem); color: var(--ink-soft); max-width: 700px; margin: 18px 0 0; }
+    .meta-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+    .meta-chips .chip {
+      padding: 5px 14px; border-radius: 999px; background: var(--bg-soft);
+      border: 1px solid var(--line); color: var(--accent-3); font-size: .84rem; font-weight: 600;
+    }
+
+    /* Figures */
+    figure { margin: 0; }
+    .figure {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 20px;
+      padding: 14px; box-shadow: var(--shadow); overflow: hidden;
+    }
+    .figure img { display: block; width: 100%; height: auto; border-radius: 12px; }
+    .figure figcaption {
+      margin-top: 12px; padding: 0 6px 4px; color: var(--ink-soft);
+      font-size: .88rem; line-height: 1.5;
+    }
+    .figure figcaption b { color: var(--accent-3); font-weight: 600; }
+    .hero-figure { margin-top: 40px; }
+
+    /* Section rhythm on this page */
+    .proj-section { padding: 70px 0; }
+    .proj-section h2 { font-size: clamp(1.6rem, 3.6vw, 2.3rem); letter-spacing: -.01em; }
+    .proj-section > .wrap > p { color: var(--ink-soft); max-width: 760px; }
+    .proj-section .body { max-width: 760px; }
+    .proj-section .body p { color: var(--ink-soft); }
+
+    /* Signal chain diagram */
+    .chain { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; margin: 30px 0 8px; }
+    .chain .stage {
+      flex: 1 1 150px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+      padding: 16px 18px; box-shadow: 0 8px 24px rgba(120,72,40,.07);
+      transition: transform .25s ease, border-color .25s ease;
+    }
+    .chain .stage:hover { transform: translateY(-4px); border-color: var(--gold); }
+    .chain .stage .k { font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; color: var(--gold); font-weight: 600; }
+    .chain .stage .n { font-family: "Fraunces", serif; font-size: 1.02rem; color: var(--ink); margin-top: 6px; font-weight: 600; }
+    .chain .stage .v { color: var(--accent); font-weight: 600; font-size: .84rem; margin-top: 6px; }
+    .chain .arrow { align-self: center; color: var(--gold); flex: 0 0 auto; }
+    .chain .arrow svg { width: 20px; height: 20px; display: block; }
+
+    /* Stage explanation list */
+    .stage-list { display: grid; gap: 14px; margin-top: 28px; }
+    .stage-list .row {
+      display: grid; grid-template-columns: 132px 1fr; gap: 20px; align-items: start;
+      padding: 18px 0; border-top: 1px solid var(--line);
+    }
+    .stage-list .row .name { font-family: "Fraunces", serif; font-weight: 600; color: var(--accent-3); }
+    .stage-list .row p { margin: 0; color: var(--ink-soft); }
+
+    /* Data table */
+    .table-wrap { overflow-x: auto; margin-top: 26px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); box-shadow: 0 8px 24px rgba(120,72,40,.07); }
+    table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: .93rem; }
+    th, td { padding: 13px 20px; text-align: left; border-bottom: 1px solid var(--line); }
+    thead th { background: var(--bg-soft); color: var(--accent-3); font-size: .78rem; text-transform: uppercase; letter-spacing: .1em; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody td:first-child { font-weight: 600; color: var(--ink); }
+    td.num { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+
+    /* Scope gallery */
+    .scope-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 32px; }
+    .fig-stack { display: grid; gap: 24px; margin-top: 32px; }
+
+    /* Takeaway callout */
+    .callout {
+      margin-top: 30px; padding: 26px 30px; border-radius: 20px;
+      background: var(--surface); border: 1px solid var(--line);
+      border-left: 4px solid var(--accent); box-shadow: var(--shadow);
+    }
+    .callout h3 { font-size: 1.2rem; margin-bottom: 8px; }
+    .callout p { color: var(--ink-soft); margin: 8px 0 0; }
+
+    @media (max-width: 680px) {
+      .proj-hero { padding-top: 120px; }
+      .stage-list .row { grid-template-columns: 1fr; gap: 6px; }
+      .chain .arrow { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="../../index.html#home" class="nav-brand">Seth Lee</a>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="nav-links" id="navLinks">
+        <a href="../../index.html#home">Home</a>
+        <a href="../../index.html#about">About / Experience</a>
+        <a href="../../index.html#projects">Projects</a>
+        <a href="../../index.html#contact">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <section class="proj-hero">
+    <div class="wrap">
+      <a class="back-link" href="../../index.html#projects">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m0 0 6-6m-6 6 6 6"/></svg>
+        Back to projects
+      </a>
+      <h1 class="proj-title">Metal Detector</h1>
+      <p class="proj-lede">
+        A beat-frequency metal detector built from discrete MOSFETs on a custom Altium PCB —
+        two LC oscillators, a MOSFET mixer, a low-pass filter, and a source follower that
+        drives the speaker. Sweep the coil over metal and the pitch drops.
+      </p>
+      <div class="meta-chips">
+        <span class="chip">ESE 3190 · UPenn</span>
+        <span class="chip">Spring 2026</span>
+        <span class="chip">Altium</span>
+        <span class="chip">LTspice</span>
+        <span class="chip">Analog Design</span>
+      </div>
+
+      <figure class="figure hero-figure" id="heroFigure">
+        <img src="../../assets/metal-detector/hero.jpg" alt="The finished metal detector: a hand-wound copper coil on a PVC frame with the custom PCB and speaker mounted to the shaft."
+             onerror="this.src='../../assets/metal-detector/main.jpeg'" />
+        <figcaption>The finished build — a hand-wound <b>5.36&nbsp;mH</b> air-core coil on a PVC frame, with the custom PCB and its speaker mounted to the shaft.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ===== HOW IT WORKS ===== -->
+  <section class="proj-section">
+    <div class="wrap">
+      <p class="eyebrow reveal">How it works</p>
+      <h2 class="reveal">Beat-frequency detection</h2>
+      <div class="body reveal">
+        <p>
+          Two LC oscillators run just a kilohertz apart: one fixed at ~50&nbsp;kHz, one tuned by
+          the hand-wound search coil at ~49&nbsp;kHz. A mixer sums them, and because a MOSFET's
+          drain current follows a square law, mixing produces a difference tone — about 1&nbsp;kHz,
+          right in the middle of the audible band. A low-pass filter throws away the 50&nbsp;kHz
+          carriers and keeps that beat note.
+        </p>
+        <p>
+          Bringing the coil near metal induces eddy currents in it, which lower the coil's
+          inductance and <i>raise</i> the variable oscillator's frequency. The gap between the two
+          oscillators shrinks, so the beat tone drops in pitch — the whole detector is that one
+          effect, made audible.
+        </p>
+      </div>
+
+      <div class="chain reveal">
+        <div class="stage">
+          <div class="k">Stage 01</div>
+          <div class="n">Two LC oscillators</div>
+          <div class="v">49 &amp; 50 kHz</div>
+        </div>
+        <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m0 0-6-6m6 6-6 6"/></svg></span>
+        <div class="stage">
+          <div class="k">Stage 02</div>
+          <div class="n">Mixer + 1st CS amp</div>
+          <div class="v">sums &amp; squares</div>
+        </div>
+        <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m0 0-6-6m6 6-6 6"/></svg></span>
+        <div class="stage">
+          <div class="k">Stage 03</div>
+          <div class="n">Low-pass filter</div>
+          <div class="v">f<sub>c</sub> = 7.23 kHz</div>
+        </div>
+        <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m0 0-6-6m6 6-6 6"/></svg></span>
+        <div class="stage">
+          <div class="k">Stage 04</div>
+          <div class="n">2nd CS amp</div>
+          <div class="v">extra gain</div>
+        </div>
+        <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m0 0-6-6m6 6-6 6"/></svg></span>
+        <div class="stage">
+          <div class="k">Stage 05</div>
+          <div class="n">Source follower</div>
+          <div class="v">drives 8 Ω speaker</div>
+        </div>
+      </div>
+
+      <div class="stage-list">
+        <div class="row reveal">
+          <div class="name">Oscillators</div>
+          <p>
+            The search coil was wound by hand to <b>5.36&nbsp;mH</b> — large enough to project a
+            usable magnetic field (small coils induce weak eddy currents and make an insensitive
+            detector), small enough that the resonating capacitor stays compact on the PCB.
+            Solving <i>f</i> = 1/(2π√LC) for 49&nbsp;kHz gave <b>1.96&nbsp;nF</b>; the fixed
+            oscillator pairs a 10&nbsp;mH inductor with <b>1.01&nbsp;nF</b> for 50&nbsp;kHz.
+          </p>
+        </div>
+        <div class="row reveal">
+          <div class="name">Mixer</div>
+          <p>
+            A differential pair sums both oscillators. The square-law drain current generates the
+            sum-and-difference products, and the first common-source stage amplifies the result
+            into a 2&nbsp;kΩ load.
+          </p>
+        </div>
+        <div class="row reveal">
+          <div class="name">Filter</div>
+          <p>
+            A 10&nbsp;kΩ / 2.2&nbsp;nF RC filter cuts at 7.23&nbsp;kHz — far below the 50&nbsp;kHz
+            carriers, far above the beat note. The 10&nbsp;kΩ value was picked to sit well above
+            the preceding stage's 2&nbsp;kΩ load so it wouldn't drag the gain down.
+          </p>
+        </div>
+        <div class="row reveal">
+          <div class="name">Output</div>
+          <p>
+            A second CS amp (2.2&nbsp;kΩ load) adds loudness, then a source follower buffers into
+            the speaker. Driving an 8&nbsp;Ω load straight off a CS amp fails — its output
+            resistance is high, so almost all the signal drops across the Thévenin resistance
+            instead of the speaker. The follower's low output impedance fixes the transfer.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== DESIGN / HARDWARE ===== -->
+  <section class="proj-section" style="background: linear-gradient(180deg, transparent, rgba(248,235,217,.5));">
+    <div class="wrap">
+      <p class="eyebrow reveal">Design &amp; hardware</p>
+      <h2 class="reveal">From hand calculations to a board</h2>
+      <p class="reveal">
+        Component values came out of the resonance and RC-cutoff equations, then bias points were
+        trimmed on the bench with potentiometers.
+      </p>
+
+      <div class="table-wrap reveal">
+        <table>
+          <thead>
+            <tr><th>Parameter</th><th>Value</th><th>Why</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Search coil</td><td class="num">5.36 mH</td><td class="num">Hand-wound; strong enough field to induce eddy currents</td></tr>
+            <tr><td>Variable osc. cap</td><td class="num">1.96 nF</td><td class="num">Resonates the coil at 49 kHz</td></tr>
+            <tr><td>Fixed osc.</td><td class="num">10 mH / 1.01 nF</td><td class="num">Reference tone at 50 kHz</td></tr>
+            <tr><td>Low-pass filter</td><td class="num">10 kΩ / 2.2 nF</td><td class="num">7.23 kHz cutoff; avoids loading the 2 kΩ stage</td></tr>
+            <tr><td>2nd CS amp load</td><td class="num">2.2 kΩ</td><td class="num">Audible gain without pushing the FET out of saturation</td></tr>
+            <tr><td>Gate bias</td><td class="num">3.0 V</td><td class="num">Midpoint between GND and 5 V VDD — keeps devices in saturation</td></tr>
+            <tr><td>Tail current bias</td><td class="num">1.141 V</td><td class="num">Tuned on the bench for the mixer's current mirror</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="fig-stack">
+        <figure class="figure reveal">
+          <img src="../../assets/metal-detector/block-diagram.png" alt="Top-level Altium schematic showing the two oscillator sheets feeding the mixer and output stages." loading="lazy" />
+          <figcaption>Top-level Altium schematic — both oscillator sheets feed the mixer/CS block, which drives the output stage and speaker. Jumpers between blocks allow each stage to be isolated during bring-up.</figcaption>
+        </figure>
+        <figure class="figure reveal">
+          <img src="../../assets/metal-detector/pcb-layout.png" alt="Altium PCB layout of the metal detector board." loading="lazy" />
+          <figcaption>PCB layout — 17 test points (TP1–TP17) were placed so every stage could be probed on a live board, which is exactly how the measurements below were taken.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== MEASUREMENTS ===== -->
+  <section class="proj-section">
+    <div class="wrap">
+      <p class="eyebrow reveal">Measured results</p>
+      <h2 class="reveal">Following the signal down the chain</h2>
+      <p class="reveal">
+        Every stage was probed at its test point on a powered board. You can watch the 50&nbsp;kHz
+        carrier survive the mixer and first amplifier, then disappear at the filter and leave only
+        the audible beat note behind.
+      </p>
+
+      <div class="scope-grid">
+        <figure class="figure reveal">
+          <img src="../../assets/metal-detector/scope-fixed-osc.png" alt="Oscilloscope capture of the fixed oscillator." loading="lazy" />
+          <figcaption><b>Fixed oscillator (TP7A)</b> — 51.1 kHz, 1.96 V<sub>pp</sub>. Parasitics and component tolerance pushed it above the 50 kHz target.</figcaption>
+        </figure>
+        <figure class="figure reveal">
+          <img src="../../assets/metal-detector/scope-variable-osc.png" alt="Oscilloscope capture of the variable oscillator." loading="lazy" />
+          <figcaption><b>Variable oscillator (TP7B)</b> — 49.1 kHz from the hand-wound coil, close to the 49 kHz design point.</figcaption>
+        </figure>
+        <figure class="figure reveal">
+          <img src="../../assets/metal-detector/scope-mixer.png" alt="Oscilloscope capture at the mixer output." loading="lazy" />
+          <figcaption><b>Mixer (TP8)</b> — 50.2 kHz, 3.91 V<sub>pp</sub>. The two tones are now summed and squared.</figcaption>
+        </figure>
+        <figure class="figure reveal">
+          <img src="../../assets/metal-detector/scope-cs1.png" alt="Oscilloscope capture at the first common-source amplifier." loading="lazy" />
+          <figcaption><b>1st CS amp (TP13)</b> — 4.57 V<sub>pp</sub>, with the beat envelope now visible riding on the carrier.</figcaption>
+        </figure>
+        <figure class="figure reveal">
+          <img src="../../assets/metal-detector/scope-filter.png" alt="Oscilloscope capture after the low-pass filter." loading="lazy" />
+          <figcaption><b>Low-pass filter (TP15)</b> — the carrier is knocked down and a <b>2.04 kHz</b> difference tone emerges.</figcaption>
+        </figure>
+        <figure class="figure reveal">
+          <img src="../../assets/metal-detector/scope-cs2.png" alt="Oscilloscope capture at the second common-source amplifier." loading="lazy" />
+          <figcaption><b>2nd CS amp</b> — the beat note is boosted from 1.10 V<sub>pp</sub> to 1.69 V<sub>pp</sub> for the speaker.</figcaption>
+        </figure>
+        <figure class="figure reveal">
+          <img src="../../assets/metal-detector/scope-output.png" alt="Oscilloscope capture at the source-follower output stage." loading="lazy" />
+          <figcaption><b>Output stage (TP17)</b> — 2.43 kHz at 1.55 V<sub>pp</sub> into the speaker. The follower's sub-unity gain is the expected price for the low output impedance.</figcaption>
+        </figure>
+      </div>
+
+      <h2 class="reveal" style="margin-top:64px;">Theory vs. bench</h2>
+      <p class="reveal">
+        Small-signal gain predictions held up only where the signal stayed small. The mixer and CS
+        stages swing hard enough to clip against the rails and fall out of saturation, so their
+        measured gains land well below the hand calculations — while the source follower, which
+        barely swings the device, matched almost exactly.
+      </p>
+      <div class="table-wrap reveal">
+        <table>
+          <thead>
+            <tr><th>Stage</th><th>Theoretical</th><th>Measured</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Mixer</td><td class="num">−10 V/V</td><td class="num">−1.98 V/V</td></tr>
+            <tr><td>1st CS amp</td><td class="num">−8.02 V/V</td><td class="num">−1.17 V/V</td></tr>
+            <tr><td>2nd CS amp</td><td class="num">−8.90 V/V</td><td class="num">−1.55 V/V</td></tr>
+            <tr><td>Source follower</td><td class="num">0.95 V/V</td><td class="num">0.917 V/V</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== OUTCOME ===== -->
+  <section class="proj-section" style="background: linear-gradient(180deg, rgba(248,235,217,.5), rgba(224,138,60,.10)); padding-bottom: 90px;">
+    <div class="wrap">
+      <p class="eyebrow reveal">Outcome</p>
+      <h2 class="reveal">It found everything on demo day</h2>
+      <div class="body reveal">
+        <p>
+          Sweeping the coil over each target dropped the pitch exactly as the theory predicts:
+          eddy currents lower the coil's inductance, the variable oscillator climbs toward the
+          fixed one, and the beat note falls. Every object was detected.
+        </p>
+        <p>
+          The honest gap between simulation and hardware was the filter. LTspice produced a clean
+          sine at the output; the real board still carries visible 50&nbsp;kHz ripple, because the
+          carriers are the largest-amplitude signals in the chain and a single-pole RC only
+          attenuates so much. Raising the filter capacitance would push the cutoff lower and clean
+          it up further — the next thing I'd change. The oscillators also landed at 51.1 and
+          49.1&nbsp;kHz rather than 50 and 49, giving a ~2&nbsp;kHz beat instead of 1&nbsp;kHz,
+          which traces back to parasitic L and C plus component tolerance.
+        </p>
+      </div>
+
+      <div class="callout reveal">
+        <h3>What I took away</h3>
+        <p>
+          Small-signal models tell you where to start, not what you'll measure. The stages that
+          swing hardest deviated most from hand calculations, and the fix each time was on the
+          bench — trimming bias points with the potentiometers and probing stage by stage through
+          the test points I'd placed during layout.
+        </p>
+      </div>
+
+      <div class="btn-row" style="margin-top:38px;">
+        <a class="btn btn-primary" href="../../index.html#projects">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m0 0 6-6m-6 6 6 6"/></svg>
+          Back to projects
+        </a>
+        <a class="btn btn-ghost" href="mailto:Sethlee2024@gmail.com?subject=Metal%20Detector%20project">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+          Ask me about it
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      &copy; <span id="year"></span> Seth Lee. All rights reserved.
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Reveal-on-scroll
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+    document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+
+    // Navbar: solid background once scrolled
+    const navbar = document.getElementById('navbar');
+    const onScroll = () => navbar.classList.toggle('scrolled', window.scrollY > 30);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // Mobile menu toggle
+    const navToggle = document.getElementById('navToggle');
+    const navLinks = document.getElementById('navLinks');
+    navToggle.addEventListener('click', () => {
+      const open = navLinks.classList.toggle('open');
+      navToggle.setAttribute('aria-expanded', open);
+    });
+  </script>
+</body>
+</html>
