@@ -301,7 +301,7 @@
   </section>
 
   <!-- ===== MEASUREMENTS ===== -->
-  <section class="proj-section">
+  <section class="proj-section" style="padding-bottom: 90px;">
     <div class="wrap">
       <p class="eyebrow reveal">Measured results</p>
       <h2 class="reveal">Oscilloscope waveforms</h2>
@@ -343,68 +343,12 @@
         </figure>
       </div>
 
-      <h2 class="reveal" style="margin-top:64px;">Theoretical vs. measured gain</h2>
-      <p class="reveal">
-        The measured gains of the mixer and the CS amplifiers are significantly lower than the
-        theoretical values. This is because the theoretical gain does not account for the voltage
-        rails of the MOSFETs or the MOSFETs potentially falling out of saturation due to the large
-        swings. These large swings mean that the small signal model calculation of gain is no
-        longer accurate. The common drain stage, on the other hand, matched its theoretical value
-        closely.
+      <p class="reveal" style="margin-top:34px;">
+        Consistent with these oscilloscope screenshots, the metal detector worked in real life and
+        was able to detect all of the objects on demo day. As the custom inductor came into contact
+        with metal, the frequency of the variable LC oscillator changed, which shrank the
+        differential signal and lowered the pitch of the sound coming out of the speaker.
       </p>
-      <div class="table-wrap reveal">
-        <table>
-          <thead>
-            <tr><th>Stage</th><th>Theoretical</th><th>Measured</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>Mixer</td><td class="num">−10 V/V</td><td class="num">−1.98 V/V</td></tr>
-            <tr><td>1st CS amp</td><td class="num">−8.02 V/V</td><td class="num">−1.17 V/V</td></tr>
-            <tr><td>2nd CS amp</td><td class="num">−8.90 V/V</td><td class="num">−1.55 V/V</td></tr>
-            <tr><td>Source follower</td><td class="num">0.95 V/V</td><td class="num">0.917 V/V</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===== OUTCOME ===== -->
-  <section class="proj-section" style="background: linear-gradient(180deg, rgba(248,235,217,.5), rgba(224,138,60,.10)); padding-bottom: 90px;">
-    <div class="wrap">
-      <p class="eyebrow reveal">Discussion</p>
-      <h2 class="reveal">Conclusion</h2>
-      <div class="body reveal">
-        <p>
-          Overall, the metal detector project was successful since the metal detector was able to
-          detect all the objects on demo day. As the custom inductor was brought close to the metal
-          objects, the pitch of the noise lowered. This makes sense because the variable inductor
-          LC oscillator produces the lower frequency input at around 49 kHz. When the inductor's
-          magnetic field induces eddy currents into the metal, the inductance value lowers, which
-          in turn raises the frequency that this LC oscillator passes. This means that the
-          differential signal of around 1 to 2 kHz shrinks, producing the lower pitch sound.
-        </p>
-        <p>
-          Although the experimental oscilloscope graphs are not perfect, they do show the metal
-          detector working. The experimental results show more noise and non-idealities than the
-          simulated results do. While the simulated results resemble something much closer to an
-          actual sine wave, the experimental results show that the low pass filter struggled to
-          filter out the high frequencies. To improve the signal further, the low pass filter could
-          be fine tuned even more, and increasing the low pass filter capacitance would help since
-          the capacitor is inversely proportional to the cutoff frequency. In reality, though, not
-          all of the 49 and 50 kHz signals can be filtered out, since these are the primary signals
-          with the largest amplitude that propagate through the stages.
-        </p>
-        <p>
-          Something else worth noting is that the fixed oscillator actually produced a 51.1 kHz
-          wave and the variable oscillator produced a 49.1 kHz wave, which explains why the
-          differential signal is roughly 2 kHz instead of 1 kHz. The reason these waves were not
-          perfectly 50 kHz and 49 kHz is due to non-idealities in the circuit, specifically
-          parasitic inductances and capacitances, which would alter the LC oscillator. Additionally,
-          the capacitors and inductors have some tolerance compared to their actual values, adding
-          to the error. Despite these non-idealities, the metal detector worked as expected and the
-          filter still did its job by filtering out some of the higher frequency signals.
-        </p>
-      </div>
 
       <div class="btn-row" style="margin-top:38px;">
         <a class="btn btn-primary" href="../../index.html#projects">
