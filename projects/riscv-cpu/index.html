@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RISC-V CPU — Seth Lee</title>
+  <meta name="description" content="A progression of RV32IM processor designs in SystemVerilog, from a single-cycle datapath through a 5-stage pipeline to a pipelined core backed by an AXI4-Lite cache hierarchy." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../../style.css" />
+
+  <style>
+    /* ---------- Plain document layout ---------- */
+    .doc { padding: 140px 0 90px; }
+    .doc .wrap { max-width: 820px; }
+
+    .back-link {
+      display: inline-flex; align-items: center; gap: 8px;
+      text-decoration: none; color: var(--ink-soft); font-weight: 600; font-size: .9rem;
+      transition: color .2s ease, gap .2s ease;
+    }
+    .back-link:hover { color: var(--accent); gap: 12px; }
+    .back-link svg { width: 16px; height: 16px; }
+
+    .doc h1 { font-size: clamp(2rem, 5vw, 2.8rem); letter-spacing: -.02em; margin: 20px 0 0; }
+    .doc .lede { color: var(--ink-soft); font-size: 1.08rem; margin: 14px 0 0; }
+
+    .repo-line { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 22px; }
+    .repo-line a {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 15px; border-radius: 8px;
+      background: var(--surface); border: 1px solid var(--line);
+      color: var(--accent-3); font-weight: 600; font-size: .9rem; text-decoration: none;
+      transition: border-color .2s ease, color .2s ease;
+    }
+    .repo-line a:hover { border-color: var(--gold); color: var(--accent); }
+    .repo-line a svg { width: 17px; height: 17px; }
+    .repo-line .tag {
+      padding: 8px 14px; border-radius: 8px; background: var(--bg-soft);
+      border: 1px solid var(--line); color: var(--ink-soft); font-size: .84rem; font-weight: 500;
+    }
+
+    .doc hr { border: 0; border-top: 1px solid var(--line); margin: 46px 0; }
+
+    .doc h2 {
+      font-size: 1.55rem; letter-spacing: -.01em; margin: 0 0 6px;
+      padding-bottom: 10px; border-bottom: 1px solid var(--line);
+    }
+    .doc h3 { font-size: 1.12rem; color: var(--accent-3); margin: 34px 0 4px; }
+    .doc p { color: var(--ink-soft); line-height: 1.72; margin: 14px 0; }
+    .doc p b, .doc li b { color: var(--ink); font-weight: 600; }
+    .doc ul { color: var(--ink-soft); line-height: 1.72; padding-left: 22px; margin: 14px 0; }
+    .doc li { margin: 9px 0; }
+    .doc a.inline { color: var(--accent); font-weight: 500; }
+
+    /* Inline + block code */
+    code {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: .86em; background: var(--bg-soft); border: 1px solid var(--line);
+      border-radius: 5px; padding: 1.5px 6px; color: var(--accent-3);
+    }
+    pre {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+      padding: 16px 18px; overflow-x: auto; margin: 18px 0;
+      font-size: .84rem; line-height: 1.65;
+    }
+    pre code {
+      background: none; border: 0; padding: 0; color: var(--ink);
+      font-size: 1em; white-space: pre;
+    }
+    pre .c { color: #9c8878; font-style: italic; }  /* comment */
+    pre .k { color: var(--accent); }                 /* keyword */
+
+    .filename {
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: .76rem; color: var(--ink-soft); letter-spacing: .01em;
+      margin: 26px 0 -8px; display: block;
+    }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; margin: 20px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+    table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: .9rem; }
+    th, td { padding: 11px 16px; text-align: left; border-bottom: 1px solid var(--line); }
+    thead th { background: var(--bg-soft); color: var(--accent-3); font-size: .74rem; text-transform: uppercase; letter-spacing: .09em; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody td:first-child { font-weight: 600; color: var(--ink); }
+    td.num { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+    td code { font-size: .82em; }
+
+    .note {
+      border-left: 3px solid var(--gold); background: var(--bg-soft);
+      padding: 2px 18px; margin: 20px 0; border-radius: 0 8px 8px 0;
+    }
+    .note p { margin: 12px 0; font-size: .93rem; }
+
+    @media (max-width: 680px) {
+      .doc { padding-top: 110px; }
+      pre { font-size: .78rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="../../index.html#home" class="nav-brand">Seth Lee</a>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="nav-links" id="navLinks">
+        <a href="../../index.html#home">Home</a>
+        <a href="../../index.html#about">About / Experience</a>
+        <a href="../../index.html#projects">Projects</a>
+        <a href="../../index.html#contact">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="doc">
+    <div class="wrap">
+
+      <a class="back-link" href="../../index.html#projects">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m0 0 6-6m-6 6 6 6"/></svg>
+        Back to projects
+      </a>
+
+      <h1>RISC-V CPU Implementations in SystemVerilog</h1>
+      <p class="lede">
+        A progression of RV32IM processor designs, from a single-cycle datapath through a 5-stage
+        pipeline to a pipelined core backed by an AXI4-Lite cache hierarchy. Every design is
+        verified against the official <code>riscv-tests</code> suite and the Dhrystone benchmark,
+        and synthesizes for the Lattice ECP5 FPGA on the ULX3S board.
+      </p>
+
+      <div class="repo-line">
+        <a href="https://github.com/Seth16225/riscv-cpu-portfolio" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-1.8c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5Z"/></svg>
+          Seth16225/riscv-cpu-portfolio
+        </a>
+        <span class="tag">SystemVerilog</span>
+        <span class="tag">Verilator + cocotb</span>
+        <span class="tag">AXI4-Lite</span>
+        <span class="tag">CIS 5710 · UPenn</span>
+      </div>
+
+      <hr />
+
+      <h2>The designs</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Project</th><th>What it is</th><th>Tests</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>hw2a-divider</code></td><td class="num">Iterative 32-bit unsigned divider</td><td class="num">5/5</td></tr>
+            <tr><td><code>hw2b-cla</code></td><td class="num">32-bit carry-lookahead adder built from 4-bit blocks</td><td class="num">8/8</td></tr>
+            <tr><td><code>hw3-singlecycle</code></td><td class="num">Single-cycle RV32I datapath</td><td class="num">63/63</td></tr>
+            <tr><td><code>hw4-multicycle</code></td><td class="num">Adds a pipelined divider and the RV32M extension</td><td class="num">57/57</td></tr>
+            <tr><td><code>hw5-pipelined</code></td><td class="num">5-stage pipeline (F/D/X/M/W) with full bypassing</td><td class="num">77/77</td></tr>
+            <tr><td><code>hw6-axil</code></td><td class="num">Pipeline talking to memory over AXI4-Lite; adds a 6th stage</td><td class="num">83/83</td></tr>
+            <tr><td><code>hw6-cache</code></td><td class="num">Direct-mapped write-back cache as the D$, on an AXI-Lite hierarchy</td><td class="num">174/178</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Test counts are cocotb test cases. Each of the five CPU designs runs the full 46-binary
+        <code>riscv-tests</code> RV32IM suite. <code>hw3</code> through <code>hw6-axil</code>
+        additionally pass cycle-accurate trace comparison against reference traces and run Dhrystone
+        to completion.
+      </p>
+
+      <hr />
+
+      <h2>Dhrystone, measured</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Design</th><th>Cycles</th><th>Fmax (ECP5)</th><th>Wall clock</th><th>Flip-flops</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>hw3-singlecycle</code></td><td class="num">193,201</td><td class="num">4.72 MHz</td><td class="num">40.9 ms</td><td class="num">1,056 (1%)</td></tr>
+            <tr><td><code>hw4-multicycle</code></td><td class="num">197,201</td><td class="num">23.96 MHz</td><td class="num">8.2 ms</td><td class="num">1,725 (2%)</td></tr>
+            <tr><td><code>hw5-pipelined</code></td><td class="num">258,085</td><td class="num">36.07 MHz</td><td class="num"><b>7.2 ms</b></td><td class="num">2,537 (3%)</td></tr>
+            <tr><td><code>hw6-axil</code></td><td class="num">287,774</td><td class="num">31.34 MHz</td><td class="num">9.2 ms</td><td class="num">2,580 (3%)</td></tr>
+            <tr><td><code>hw6-cache</code></td><td class="num">—</td><td class="num">28.55 MHz</td><td class="num">—</td><td class="num">2,677 (3%)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Cycle count alone is misleading, and deliberately so. The single-cycle design retires an
+        instruction every cycle, but instruction fetch, the ALU, and the data memory access all sit
+        in one combinational path, so it only closes timing at 4.72 MHz. The pipelined design needs
+        34% <i>more</i> cycles — bubbles from branches and load-use hazards — yet finishes Dhrystone
+        <b>5.7x faster</b>, because splitting that path into five stages buys 7.6x the clock rate.
+        That tradeoff is the whole point of the exercise.
+      </p>
+      <p>
+        Two other results worth reading off the table. The multi-cycle design gets most of the way
+        there on its own, because it moves memory into a second, phase-shifted clock domain and off
+        the critical path — the pipeline's remaining advantage over it is a more modest 1.15x. And
+        the AXI-Lite version is <i>slower</i> than the pipeline it is built from: instruction fetch
+        becomes a two-cycle round trip over the bus, adding a stage and making every branch
+        misprediction cost an extra flush. Both are honest costs of the respective designs.
+      </p>
+      <p>
+        Fmax figures are post-routing from <code>nextpnr-ecp5</code>, taking the limiting clock
+        domain (<code>hw3</code> and <code>hw4</code> are dual-clock designs).
+      </p>
+
+      <hr />
+
+      <h2>Bypassing in the 5-stage pipeline</h2>
+
+      <p>
+        The pipeline implements MX, WX, and WD bypasses. MX takes priority over WX, since the
+        Memory stage holds the more recent value:
+      </p>
+
+      <span class="filename">hw5-pipelined/DatapathPipelined.sv</span>
+<pre><code><span class="c">// Bypasses</span>
+<span class="k">always_comb</span> <span class="k">begin</span>
+  x_rs1_data = execute_state.rs1_data; <span class="c">// default unless bypassed</span>
+  x_rs2_data = execute_state.rs2_data;
+
+  <span class="c">// MX bypass has priority</span>
+  <span class="k">if</span> (memory_state.rd_we &amp;&amp; (memory_state.rd != 5'd0) &amp;&amp; (memory_state.rd == e_insn_rs1))
+    x_rs1_data = memory_state.rd_val;
+  <span class="c">// WX bypass</span>
+  <span class="k">else if</span> (writeback_state.rd_we &amp;&amp; (writeback_state.rd != 5'd0) &amp;&amp; (writeback_state.rd == e_insn_rs1))
+    x_rs1_data = writeback_state.rd_val;
+
+  <span class="k">if</span> (memory_state.rd_we &amp;&amp; (memory_state.rd != 5'd0) &amp;&amp; (memory_state.rd == e_insn_rs2))
+    x_rs2_data = memory_state.rd_val;
+  <span class="k">else if</span> (writeback_state.rd_we &amp;&amp; (writeback_state.rd != 5'd0) &amp;&amp; (writeback_state.rd == e_insn_rs2))
+    x_rs2_data = writeback_state.rd_val;
+<span class="k">end</span></code></pre>
+
+      <p>
+        The WD bypass lives inside the register file, so that an instruction reading register
+        <code>x</code> in Decode sees a write to <code>x</code> landing in Writeback that same
+        cycle:
+      </p>
+
+      <span class="filename">hw5-pipelined/DatapathPipelined.sv — RegFile</span>
+<pre><code><span class="c">// WD is needed when Decode reads a register before Writeback can write it</span>
+<span class="k">always_comb</span> <span class="k">begin</span>
+  <span class="k">if</span> (we &amp;&amp; (rd != 5'd0) &amp;&amp; (rs1 == rd))
+    rs1_data = rd_data;
+  <span class="k">else</span>
+    rs1_data = regs[rs1];
+
+  <span class="k">if</span> (we &amp;&amp; (rd != 5'd0) &amp;&amp; (rs2 == rd))
+    rs2_data = rd_data;
+  <span class="k">else</span>
+    rs2_data = regs[rs2];
+<span class="k">end</span></code></pre>
+
+      <hr />
+
+      <h2>The interesting one: the AXI-Lite cache</h2>
+
+      <p>
+        <code>hw6-cache</code> is the most substantial project here, and the one worth reading
+        first. It has two halves.
+      </p>
+
+      <h3>AxilCache.sv — a direct-mapped, write-back cache</h3>
+
+      <p>
+        The cache is an AXI4-Lite <b>subordinate</b> on the processor side and an AXI4-Lite
+        <b>manager</b> on the memory side. Capacity is parameterized by <code>NUM_SETS</code>; the
+        tests exercise it at both 16 B (easy to debug) and 2 KB (what the processor uses).
+      </p>
+      <p>
+        The hard part is not the cache policy, it is the timing. To keep up with the pipeline the
+        cache has to sustain <b>one hit per cycle</b> with no bubbles between back-to-back accesses,
+        while still honoring AXI's valid/ready handshake in both directions. That means:
+      </p>
+      <ul>
+        <li>A hit is a single-cycle registered response: combinational tag compare, result registered out.</li>
+        <li>Consecutive hits keep <code>ARREADY</code> high so a new request lands every cycle.</li>
+        <li>When the manager is not <code>RREADY</code>, the cache must <b>buffer one in-flight
+          request</b> and drop <code>ARREADY</code> to backpressure the next one — otherwise a
+          response gets dropped on the floor.</li>
+      </ul>
+
+      <p>Misses run a four-state machine:</p>
+
+      <span class="filename">hw6-cache/AxilCache.sv</span>
+<pre><code><span class="k">typedef enum</span> {
+  <span class="c">// cache can respond to an incoming request</span>
+  CACHE_AVAILABLE = 0,
+  <span class="c">// cache miss, waiting for fill from memory</span>
+  CACHE_AWAIT_FILL_RESPONSE = 1,
+  <span class="c">// cache miss, waiting for writeback to memory</span>
+  CACHE_AWAIT_WRITEBACK_RESPONSE = 2,
+  <span class="c">// cache waiting for manager to accept response</span>
+  CACHE_AWAIT_MANAGER_READY = 3
+} cache_state_t;</code></pre>
+
+      <p>
+        A dirty victim is written back first, then the block is filled, then the original request
+        completes <i>in the fill cycle</i> rather than costing an extra replay.
+      </p>
+
+      <h3>DatapathPipelinedCache.sv — integrating it</h3>
+
+      <p>
+        Hanging a variable-latency cache off a pipeline is where the design decisions live:
+      </p>
+      <ul>
+        <li><b>Fetch sends a PC, not an instruction.</b> The instruction bits arrive on
+          <code>RDATA</code> a cycle later, so the Decode pipeline register carries only a PC and a
+          valid bit; the bits themselves come straight off the bus. Branch misprediction squashes
+          get correspondingly subtler — the mispredicted instruction is <i>in flight on the bus</i>,
+          not sitting in a register.</li>
+        <li><b>Fetch is throttled to one outstanding request.</b> A request only issues in a cycle
+          where Decode frees up, and <code>RREADY</code> drops to make the memory hold
+          <code>RDATA</code> across a stall. That single invariant makes stalls, squashes, and I$
+          misses all fall out correctly.</li>
+        <li><b>Load results arrive in Writeback.</b> Load formatting (<code>lb</code>/<code>lh</code>/<code>lw</code>
+          sign extension) moved from Memory to Writeback, which pushes the load-use stall from one
+          cycle to two.</li>
+        <li><b>A D$ miss freezes the entire pipeline</b>, including any division in flight in the
+          divider pipeline.</li>
+      </ul>
+
+      <p>The whole stall structure reduces to four wires:</p>
+
+      <span class="filename">hw6-cache/DatapathPipelinedCache.sv</span>
+<pre><code><span class="c">// a D$ miss freezes the whole pipeline</span>
+<span class="k">wire</span> pipeline_frozen = dmem_stall;
+<span class="c">// F and D also freeze for load-use and div hazards</span>
+<span class="k">wire</span> fetch_decode_stall = pipeline_frozen || stall_from_load || stall_for_div;
+<span class="c">// waiting on insn bits from imem</span>
+<span class="k">wire</span> imem_wait = decode_state.valid &amp;&amp; !icache.RVALID;
+<span class="c">// D frees up this cycle, so we can take a response and send the next fetch</span>
+<span class="k">wire</span> d_advance = !fetch_decode_stall &amp;&amp; !imem_wait;</code></pre>
+
+      <h3>Results</h3>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Configuration</th><th>Tests</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Cache hit path, 16 B and 2 KB</td><td class="num">10/10, 10/10</td></tr>
+            <tr><td>Cache miss path, 16 B and 2 KB</td><td class="num">9/11, 9/11</td></tr>
+            <tr><td>Processor, no cache (AXI-Lite memory only)</td><td class="num">68/68</td></tr>
+            <tr><td>Processor, with D$</td><td class="num">68/68</td></tr>
+            <tr><td>Processor, with I$ <b>and</b> D$</td><td class="num">60/68</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        On the ECP5: 2,677 flip-flops (3% utilization) closing at 28.55 MHz post-route, against a
+        12.5 MHz target.
+      </p>
+
+      <div class="note">
+        <p>
+          Two notes on the numbers, because a portfolio with unexplained failures is worse than one
+          that explains them:
+        </p>
+        <p>
+          The two miss-path failures are <code>testReadMissWait</code> and
+          <code>testReadMissAfterWaitingHit</code>, which require a 2-cycle miss. The Python
+          <code>AxiLiteRam</code> used by those tests takes 2 cycles to respond (measured: request
+          sampled at t=13, data back at t=17), where the SystemVerilog <code>AxilMemory</code> the
+          processor actually uses takes 1. Meeting them would mean forwarding both the request and
+          the fill combinationally, which makes a D$ miss free and breaks every processor test that
+          expects a 2-cycle miss penalty. The two are mutually exclusive; the processor timing wins.
+        </p>
+        <p>
+          The I$+D$ configuration is a bonus config the graded suite does not include. All 46
+          <code>riscv-tests</code> binaries pass there — every failure is a cycle-count expectation,
+          not a wrong result. The test formulas charge one I$ miss for programs with several
+          independent ones (4-byte blocks mean consecutive instructions live in separate blocks),
+          and the "a D$ miss stalls all prior stages" rule is one cycle stricter than those
+          particular expectations.
+        </p>
+      </div>
+
+      <hr />
+
+      <h2>Running it</h2>
+
+      <p>
+        Everything runs in the course Docker image, which bundles Verilator, cocotb, Yosys, and
+        nextpnr.
+      </p>
+
+<pre><code><span class="c"># one-time: decompress the Dhrystone reference traces</span>
+./setup.sh
+
+<span class="c"># run a project's full test suite</span>
+docker run --rm -v "$PWD":/work -w /work/hw6-cache cis5710/hw-base-arm:latest \
+  bash -c 'source /tools/oss-cad-suite/environment; pytest -q -s testbench.py'</code></pre>
+
+      <p>Inside the container, or with Verilator + cocotb locally:</p>
+
+<pre><code>cd hw6-cache
+pytest -q -s testbench.py                                  <span class="c"># everything</span>
+pytest -q -s -k runCocotbTestsDmCacheHitSmall testbench.py <span class="c"># one suite</span>
+pytest -q -s testbench.py --tests testLoadUse1,testWM      <span class="c"># specific cases</span></code></pre>
+
+      <p>FPGA synthesis and place-and-route, which reports utilization and Fmax:</p>
+
+<pre><code>cd hw6-cache &amp;&amp; make resource-check</code></pre>
+
+      <p>Waveforms are written to <code>sim_build/dump.fst</code> and open in GTKWave or Surfer.</p>
+
+      <hr />
+
+      <h2>What is mine and what is not</h2>
+
+      <p>Worth being explicit about, since this is coursework.</p>
+
+      <p><b>Course-provided scaffolding</b>, written by the CIS 5710 staff:</p>
+      <ul>
+        <li>All <code>testbench*.py</code> files, the reference <code>trace-*.json</code> files, and <code>common/python/</code></li>
+        <li><code>AxilMemory</code> and <code>EasyAxilMemory</code> (the memory models behind the caches)</li>
+        <li><code>system/System.sv</code> FPGA wrappers, <code>common/make/fpga.mk</code>, board constraints, <code>docker/</code></li>
+        <li>The per-project <code>README.md</code> files, which are the original assignment writeups</li>
+      </ul>
+
+      <p>
+        <b>Third-party:</b> <code>riscv-tests/</code> is the official RISC-V test suite (BSD
+        licensed, from
+        <a class="inline" href="https://github.com/riscv-software-src/riscv-tests" target="_blank" rel="noopener">riscv-software-src/riscv-tests</a>).
+      </p>
+
+      <p>
+        <b>Everything else</b> — the datapaths, the divider, the CLA, <code>AxilCache.sv</code> — is
+        my implementation, filling in <code>TODO</code>-marked skeletons the staff provided.
+      </p>
+
+      <hr />
+
+      <div class="btn-row">
+        <a class="btn btn-primary" href="../../index.html#projects">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m0 0 6-6m-6 6 6 6"/></svg>
+          Back to projects
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/Seth16225/riscv-cpu-portfolio" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-1.8c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5Z"/></svg>
+          View the repo
+        </a>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      &copy; <span id="year"></span> Seth Lee. All rights reserved.
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Navbar: solid background once scrolled
+    const navbar = document.getElementById('navbar');
+    const onScroll = () => navbar.classList.toggle('scrolled', window.scrollY > 30);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // Mobile menu toggle
+    const navToggle = document.getElementById('navToggle');
+    const navLinks = document.getElementById('navLinks');
+    navToggle.addEventListener('click', () => {
+      const open = navLinks.classList.toggle('open');
+      navToggle.setAttribute('aria-expanded', open);
+    });
+  </script>
+</body>
+</html>
